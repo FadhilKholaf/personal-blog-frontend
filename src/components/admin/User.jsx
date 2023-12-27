@@ -1,51 +1,87 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useUsersContext } from "../../hooks/useUsersContext";
 
+// components
 import Loader from "../Loader";
 import Modify from "../../images/modify.png";
 import Delete from "../../images/delete.png";
 import ModifyForm from "../forms/ModifyForm";
 
 const User = () => {
-  const [userData, setUserData] = useState([]);
+  const { users, dispatch } = useUsersContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
   const [modifyForm, setModifyForm] = useState(false);
 
+  // form
+  const [modifyId, setModifyId] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(import.meta.env.VITE_GET_ALL_USER_API);
-        setUserData(response.data);
-        setLoading(false);
+        dispatch({ type: "SET_USERS", payload: response.data });
       } catch (error) {
-        console.error("Error fetching data:", error.message);
         setError(error.message);
-        setLoading(false);
       }
+      setLoading(false);
     };
-
     fetchData();
   }, []);
 
-  const modifyHandler = async () => {
+  const modifyHandler = async (id, email, password, role) => {
     setModifyForm(!modifyForm);
-    console.log(modifyForm);
+    setModifyId(id);
+    setEmail(email);
+    setPassword(password);
+    setRole(role);
+  };
+
+  const submitModifyHandler = async (e) => {
+    e.preventDefault();
+    const modifyData = {
+      email: email,
+      role: role,
+    };
+    const response = await axios.put(
+      import.meta.env.VITE_UPDATE_USER_API + modifyId,
+      { ...modifyData, password: password }
+    );
+    dispatch({ type: "UPDATE_USER", payload: response.data });
+    setModifyForm(false);
   };
 
   const deleteHandler = async (id) => {
-    const response = await axios.delete(
-      import.meta.env.VITE_DELETE_USER_API + id
-    );
-    if (response) {
+    try {
+      const response = await axios.delete(
+        import.meta.env.VITE_DELETE_USER_API + id
+      );
+      dispatch({ type: "DELETE_USER", payload: response.data });
       setMessage("user " + response.data.email + " has been deleted");
+      console.log(response.data);
+    } catch (error) {
+      setMessage(error.message);
     }
   };
 
   return (
     <div className="content">
-      <ModifyForm toggle={modifyHandler} hidden={modifyForm ? "" : "hidden"} />
+      <ModifyForm
+        toggle={modifyHandler}
+        hidden={modifyForm ? "" : "hidden"}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        role={role}
+        setRole={setRole}
+        handleSubmit={submitModifyHandler}
+      />
       <div className="grid g-2">
         <h1 className="text-left">User Data</h1>
         <h3 className="text-right">Add User</h3>
@@ -73,13 +109,20 @@ const User = () => {
                 </td>
               </tr>
             ) : (
-              userData.map((user, i) => (
+              users.map((user, i) => (
                 <tr className="user-tr" key={user._id}>
                   <td className="user-td">{i + 1}</td>
                   <td className="user-td">{user.email}</td>
                   <td className="user-td">
                     <img
-                      onClick={() => modifyHandler()}
+                      onClick={() =>
+                        modifyHandler(
+                          user._id,
+                          user.email,
+                          user.password,
+                          user.role
+                        )
+                      }
                       className="option-icon"
                       src={Modify}
                       alt="Modify"
