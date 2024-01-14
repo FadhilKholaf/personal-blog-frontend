@@ -12,6 +12,7 @@ const ModifyForm = (props) => {
           className={`overflow-form ${props.hidden}`}
           onSubmit={props.handleSubmit}
         >
+          {props.formType ? <h1>Add</h1> : <h1>Modify</h1>}
           <h1>Modify User Data</h1>
           <label htmlFor="email">Email</label>
           <input
@@ -29,6 +30,7 @@ const ModifyForm = (props) => {
             id="password"
             autoComplete="no"
             type="password"
+            placeholder="Enter Password"
             value={props.password || ""}
             onChange={(e) => {
               props.setPassword(e.target.value);
@@ -38,14 +40,15 @@ const ModifyForm = (props) => {
           <label htmlFor="role">Role</label>
           <select
             id="role"
-            value={props.role || ""}
+            value={props.role}
             onChange={(e) => {
               props.setRole(e.target.value);
             }}
           >
-            <option value="admin">Admin</option>
             <option value="member">Member</option>
+            <option value="admin">Admin</option>
           </select>
+
           <br />
           <button type="submit">Submit</button>
         </form>

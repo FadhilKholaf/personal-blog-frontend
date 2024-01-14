@@ -6,56 +6,128 @@ import { useUsersContext } from "../../hooks/useUsersContext";
 import Loader from "../Loader";
 import Modify from "../../images/modify.png";
 import Delete from "../../images/delete.png";
-import ModifyForm from "../forms/ModifyForm";
+import Form from "../forms/Form";
+import Notification from "../Notification";
 
 const User = () => {
-  const { users, dispatch } = useUsersContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
-  const [modifyForm, setModifyForm] = useState(false);
+
+  // context
+  const { users, dispatch } = useUsersContext();
 
   // form
+  const [form, setForm] = useState(false);
+  const [formType, setFormType] = useState(true);
+
+  // modify form
   const [modifyId, setModifyId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [role, setRole] = useState("member");
 
+  // notification
+  const [notification, setNotification] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState(true);
+  const [notificationText, setNotificationText] = useState("");
+  const notif = (status, text) => {
+    setNotification(true);
+    setNotificationStatus(status);
+    setNotificationText(text);
+    setTimeout(() => {
+      setNotification(false);
+    }, 1500);
+  };
+
+  // fetching data
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(import.meta.env.VITE_GET_ALL_USER_API);
         dispatch({ type: "SET_USERS", payload: response.data });
+        notif(true, "Data Loaded");
       } catch (error) {
         setError(error.message);
+        console.log(error.message);
+        notif(false, "Error loading data");
       }
       setLoading(false);
+      notif;
     };
     fetchData();
   }, []);
 
-  const modifyHandler = async (id, email, password, role) => {
-    setModifyForm(!modifyForm);
-    setModifyId(id);
-    setEmail(email);
-    setPassword(password);
-    setRole(role);
+  // handling form
+  const formHandler = (type, user) => {
+    setForm(!form);
+    type === "add"
+      ? [setFormType(true), setEmail(""), setPassword(""), setRole("member")]
+      : type === "modify"
+      ? [
+          setFormType(false),
+          setModifyId(user._id),
+          setOldPassword(user.password),
+          setEmail(user.email),
+          setRole(user.role),
+        ]
+      : "";
   };
 
-  const submitModifyHandler = async (e) => {
+  // handling new user data
+  const addHandler = async (e) => {
+    e.preventDefault();
+
+    // geting input data
+    const userData = {
+      email: email,
+      password: password,
+      role: role,
+    };
+
+    // inserting to database
+    try {
+      const response = await axios.post(
+        import.meta.env.VITE_ADD_USER_API,
+        userData
+      );
+      dispatch({ type: "CREATE_USER", payload: response.data });
+    } catch (error) {
+      console.log(error.response.data.error);
+    }
+
+    // clossing the form
+    setForm(false);
+  };
+
+  // handling update user data
+  const modifyHandler = async (e) => {
     e.preventDefault();
     const modifyData = {
       email: email,
       role: role,
     };
-    const response = await axios.put(
-      import.meta.env.VITE_UPDATE_USER_API + modifyId,
-      { ...modifyData, password: password }
-    );
-    dispatch({ type: "UPDATE_USER", payload: response.data });
-    setModifyForm(false);
+    try {
+      const response = await axios.put(
+        import.meta.env.VITE_UPDATE_USER_API + modifyId,
+        {
+          ...modifyData,
+          ...(!password ? { password: oldPassword } : { password: password }),
+        }
+      );
+      dispatch({ type: "UPDATE_USER", payload: response.data });
+    } catch (error) {
+      console.log(error.response.data.error);
+    }
+    setForm(false);
+    setEmail("");
+    setPassword("");
+    setOldPassword("");
+    setRole("");
   };
 
+  // handling delete user data
   const deleteHandler = async (id) => {
     try {
       const response = await axios.delete(
@@ -63,7 +135,6 @@ const User = () => {
       );
       dispatch({ type: "DELETE_USER", payload: response.data });
       setMessage("user " + response.data.email + " has been deleted");
-      console.log(response.data);
     } catch (error) {
       setMessage(error.message);
     }
@@ -71,20 +142,32 @@ const User = () => {
 
   return (
     <div className="content">
-      <ModifyForm
-        toggle={modifyHandler}
-        hidden={modifyForm ? "" : "hidden"}
+      {notification && (
+        <Notification success={notificationStatus} text={notificationText} />
+      )}
+      <Form
+        toggle={() => setForm(false)}
+        hidden={form ? "" : "hidden"}
         email={email}
         setEmail={setEmail}
         password={password}
         setPassword={setPassword}
         role={role}
         setRole={setRole}
-        handleSubmit={submitModifyHandler}
+        formType={formType}
+        {...(formType
+          ? {
+              handleSubmit: addHandler,
+            }
+          : {
+              handleSubmit: modifyHandler,
+            })}
       />
       <div className="grid g-2">
         <h1 className="text-left">User Data</h1>
-        <h3 className="text-right">Add User</h3>
+        <h3 className="text-right" onClick={() => formHandler("add")}>
+          Add User
+        </h3>
       </div>
       <div className="table-container">
         <table className="user-table">
@@ -115,14 +198,7 @@ const User = () => {
                   <td className="user-td">{user.email}</td>
                   <td className="user-td">
                     <img
-                      onClick={() =>
-                        modifyHandler(
-                          user._id,
-                          user.email,
-                          user.password,
-                          user.role
-                        )
-                      }
+                      onClick={() => formHandler("modify", user)}
                       className="option-icon"
                       src={Modify}
                       alt="Modify"

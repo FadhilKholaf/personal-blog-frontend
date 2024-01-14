@@ -4,6 +4,8 @@
   --yellow: #ffc300;
   --white: #ffffff;
   --dark-white: #f9f6f2;
+  --success: #4caf50;
+  --error: #dc3545;
 }
 
 /* all element */
@@ -48,7 +50,7 @@ body {
   width: 100vw;
   height: 100vh;
   backdrop-filter: brightness(25%);
-  transition: 1s ease;
+  transition: 0.5s ease;
 }
 .overflow-container.hidden {
   opacity: 0;
@@ -155,7 +157,7 @@ body {
   background-color: var(--white);
 }
 .user-th:nth-child(2) {
-  width: 80%;
+  width: 100%;
 }
 .user-th::after {
   content: "";
@@ -194,14 +196,14 @@ body {
   border: 1px var(--yellow) solid;
   border-radius: 1rem;
   background-color: var(--dark-white);
-  transition: 1s ease;
+  transition: 0.5s ease;
   @media screen and (width <= 768px) {
     width: 70vw;
   }
 }
 .overflow-form.hidden {
   opacity: 0;
-  top: -10rem;
+  top: -50vh;
 }
 
 /* images */
@@ -214,9 +216,28 @@ body {
     height: 1rem;
   }
 }
-
 .error {
   position: absolute;
+}
+
+/* notification */
+.notif {
+  position: absolute;
+  z-index: 4;
+  width: 40vw;
+  border-radius: 1rem;
+  color: var(--white);
+  border: var(--yellow) 2px solid;
+  transform: translateX(50%);
+  @media screen and (width <=768px) {
+    width: 40vw;
+  }
+}
+.success {
+  background-color: var(--success);
+}
+.failed {
+  background-color: var(--error);
 }
 
 /* loader */
